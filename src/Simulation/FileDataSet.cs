@@ -66,7 +66,7 @@ namespace opc.ua.pubsub.dotnet.simulation
             byte[] result = null;
             using ( MemoryStream outputStream = new MemoryStream() )
             {
-                delta.Encode( outputStream );
+                delta.Encode( m_Logger, outputStream );
                 result = outputStream.ToArray();
             }
             return result;
@@ -109,7 +109,7 @@ namespace opc.ua.pubsub.dotnet.simulation
             byte[] result = null;
             using ( MemoryStream outputStream = new MemoryStream() )
             {
-                key.Encode( outputStream );
+                key.Encode( m_Logger, outputStream );
                 result = outputStream.ToArray();
             }
             return result;

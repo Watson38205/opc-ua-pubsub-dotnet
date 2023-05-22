@@ -1,6 +1,7 @@
 ﻿// Copyright 2020 Siemens AG
 // SPDX-License-Identifier: MIT
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
 
@@ -17,7 +18,7 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.Meta
         public byte[] ValidBits { get; set; }
         public byte[] Value     { get; set; }
 
-        public void Encode( Stream outputStream, bool withHeader = true )
+        public void Encode( ILogger logger, Stream outputStream, bool withHeader = true )
         {
             if ( !Options.LegacyFieldFlagEncoding )
             {
@@ -70,7 +71,7 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.Meta
             return Equals( Value, other.Value ) && Equals( ValidBits, other.ValidBits ) && Equals( Options, other.Options );
         }
 
-        public static OptionSet Decode( Stream inputStream, EncodingOptions options )
+        public static OptionSet Decode( ILogger logger, Stream inputStream, EncodingOptions options )
         {
             OptionSet instance = new OptionSet( options );
             if ( options.LegacyFieldFlagEncoding )

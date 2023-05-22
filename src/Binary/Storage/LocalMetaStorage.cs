@@ -1,20 +1,19 @@
 // Copyright 2020 Siemens AG
 // SPDX-License-Identifier: MIT
 
+using System;
 using System.Collections.Concurrent;
 using System.Linq;
-using System.Reflection;
+using Microsoft.Extensions.Logging;
 using opc.ua.pubsub.dotnet.binary.Messages.Meta;
-using log4net;
 
 namespace opc.ua.pubsub.dotnet.binary.Storage
 {
     public class LocalMetaStorage
     {
-        private const int MaximumMetaMessagePerPublisher = 10;
-        private static readonly ILog Logger = LogManager.GetLogger( MethodBase.GetCurrentMethod()
-                                                                              .DeclaringType
-                                                                  );
+        private readonly ILogger m_Logger;
+        private const    int     MaximumMetaMessagePerPublisher = 10;
+        
         /// <summary>
         ///     Used for storing the meta message only locally, not in Azure.
         ///     This is only used if the corresponding FeatureToggle is set.
@@ -23,6 +22,11 @@ namespace opc.ua.pubsub.dotnet.binary.Storage
         //protected readonly ConcurrentDictionary<string, ConcurrentDictionary<ConfigurationVersion, MetaFrame>> m_DeviceMetaMessages = new ConcurrentDictionary<string, ConcurrentDictionary<ConfigurationVersion, MetaFrame>>();
         protected readonly ConcurrentDictionary<string, ConcurrentDictionary<ushort, ConcurrentDictionary<ConfigurationVersion, MetaFrame>>> m_DeviceMetaMessages =
                 new ConcurrentDictionary<string, ConcurrentDictionary<ushort, ConcurrentDictionary<ConfigurationVersion, MetaFrame>>>();
+
+        public LocalMetaStorage(ILogger logger)
+        {
+            m_Logger = logger ?? throw new ArgumentNullException( nameof(logger) );
+        }
 
         public bool IsMetaMessageAlreadyKnown( string publisherID, ushort writerID, ConfigurationVersion cfg )
         {
@@ -75,9 +79,9 @@ namespace opc.ua.pubsub.dotnet.binary.Storage
             {
                 return;
             }
-            if ( Logger.IsInfoEnabled )
+            if ( m_Logger.IsEnabled(LogLevel.Information) )
             {
-                Logger.Info( $"Storing meta message for {pubID} with version {configVersion}." );
+                m_Logger.LogInformation( $"Storing meta message for {pubID} with version {configVersion}." );
             }
             if ( !m_DeviceMetaMessages.TryGetValue( pubID, out ConcurrentDictionary<ushort, ConcurrentDictionary<ConfigurationVersion, MetaFrame>> publisherDictionary ) )
             {

@@ -7,15 +7,13 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using opc.ua.pubsub.dotnet.binary.Messages.Meta;
-using log4net;
+using Microsoft.Extensions.Logging;
 
 namespace opc.ua.pubsub.dotnet.binary.DataPoints
 {
     public static class DataPointEncoderDecoder
     {
-        private static readonly ILog Logger = LogManager.GetLogger( typeof(DataPointEncoderDecoder) );
-
-        public static void Decode( Stream inputStream, Dictionary<string, object> fields, NodeID dataType, string name )
+        public static void Decode(ILogger logger, Stream inputStream, Dictionary<string, object> fields, NodeID dataType, string name )
         {
             if ( dataType.Equals( WellKnownNodeIDs.UInt32 ) )
             {
@@ -83,7 +81,7 @@ namespace opc.ua.pubsub.dotnet.binary.DataPoints
             }
         }
 
-        public static void Encode( Stream outputStream, NodeID dataType, object value )
+        public static void Encode( ILogger logger, Stream outputStream, NodeID dataType, object value )
         {
             if ( dataType.Equals( WellKnownNodeIDs.UInt32 ) )
             {
@@ -121,7 +119,7 @@ namespace opc.ua.pubsub.dotnet.binary.DataPoints
             }
             else
             {
-                Logger.Info( "Unsupported data type cannot be encoded" );
+                logger.LogInformation( "Unsupported data type cannot be encoded" );
             }
         }
     }

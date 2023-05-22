@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using opc.ua.pubsub.dotnet.binary.Messages.Meta.Structure;
 using Newtonsoft.Json;
 
@@ -40,7 +41,7 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.Meta
         [JsonConverter( typeof(StructureDataTypeDictionaryJSONConverter) )]
         public Dictionary<NodeID, StructureDescription> StructureDataTypes { get; set; }
 
-        public override void Encode( Stream outputStream, bool withHeader = true )
+        public override void Encode( ILogger logger, Stream outputStream, bool withHeader = true )
         {
             if ( outputStream == null || !outputStream.CanWrite )
             {
@@ -52,10 +53,10 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.Meta
                 NetworkMessageHeader.Encode( outputStream );
             }
 
-            EncodeChunk( outputStream );
+            EncodeChunk( logger, outputStream );
         }
 
-        public static MetaFrame Decode( Stream inputStream, EncodingOptions options )
+        public static MetaFrame Decode( ILogger logger, Stream inputStream, EncodingOptions options )
         {
             MetaFrame instance = new MetaFrame();
             if ( inputStream == null )
@@ -63,7 +64,7 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.Meta
                 return null;
             }
             instance.DiscoveryResponseHeader = DiscoveryResponseHeader.Decode( inputStream );
-            bool chunkResult = DeocdeChunk( inputStream, options, ref instance );
+            bool chunkResult = DeocdeChunk( logger, inputStream, options, ref instance );
             if ( chunkResult )
             {
                 return instance;
@@ -75,8 +76,9 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.Meta
         ///     Encodes just the DataSetMetaData message to the given Stream.
         ///     NetworkMessage Header and DiscoveryResponse are not encoded.
         /// </summary>
-        /// <param name="outputStream"></param>
-        public void EncodeChunk( Stream outputStream )
+        /// <param name="logger">The logger.</param>
+        /// <param name="outputStream">The output stream.</param>
+        public void EncodeChunk( ILogger logger, Stream outputStream )
         {
             DiscoveryResponseHeader.Encode( outputStream );
 
@@ -101,7 +103,7 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.Meta
             {
                 // ReSharper disable once PossibleNullReferenceException
                 FieldMetaData field = FieldMetaDataList[i] ?? new FieldMetaData( Options );
-                field.Encode( outputStream );
+                field.Encode( logger, outputStream );
             }
 
             // DataSet Class ID
@@ -195,7 +197,7 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.Meta
         /// <param name="inputStream"></param>
         /// <param name="instance"></param>
         /// <returns></returns>
-        protected static bool DeocdeChunk( Stream inputStream, EncodingOptions options, ref MetaFrame instance )
+        protected static bool DeocdeChunk( ILogger logger, Stream inputStream, EncodingOptions options, ref MetaFrame instance )
         {
             instance.DataSetWriterID = BaseType.ReadUInt16( inputStream )
                                                .Value;
@@ -216,7 +218,7 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.Meta
             }
             instance.Name              = String.Decode( inputStream );
             instance.Description       = LocalizedText.Decode( inputStream );
-            instance.FieldMetaDataList = ParseFieldMetaDataArray( inputStream, options );
+            instance.FieldMetaDataList = ParseFieldMetaDataArray( logger, inputStream, options );
             byte[] guidAsByte = Common.ReadBytes( inputStream, 16 );
             if ( guidAsByte != null && guidAsByte.Length == 16 )
             {
@@ -313,7 +315,7 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.Meta
             return dictionary;
         }
 
-        private static List<FieldMetaData> ParseFieldMetaDataArray( Stream inputStream, EncodingOptions options )
+        private static List<FieldMetaData> ParseFieldMetaDataArray( ILogger logger, Stream inputStream, EncodingOptions options )
         {
             if ( inputStream == null || !inputStream.CanRead )
             {
@@ -335,7 +337,7 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.Meta
             List<FieldMetaData> fieldMetaDataList = new List<FieldMetaData>( arraySize.Value );
             for ( int i = 0; i < arraySize.Value; i++ )
             {
-                FieldMetaData item = FieldMetaData.Decode( inputStream, options );
+                FieldMetaData item = FieldMetaData.Decode( logger, inputStream, options );
                 item.Index = i;
                 fieldMetaDataList.Add( item );
             }

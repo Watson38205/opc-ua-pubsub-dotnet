@@ -1,6 +1,7 @@
 ﻿// Copyright 2020 Siemens AG
 // SPDX-License-Identifier: MIT
 
+using Microsoft.Extensions.Logging;
 using System.IO;
 
 namespace opc.ua.pubsub.dotnet.binary
@@ -12,7 +13,7 @@ namespace opc.ua.pubsub.dotnet.binary
     public interface ICodable<out T>
     {
         EncodingOptions Options { get; }
-        void            Encode( Stream outputStream, bool withHeader = true );
+        void            Encode( ILogger logger, Stream outputStream, bool withHeader = true );
 
         //T Decode(Stream inputStream);
     }

@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Logging;
 using opc.ua.pubsub.dotnet.binary;
 using opc.ua.pubsub.dotnet.binary.DataPoints;
 using opc.ua.pubsub.dotnet.binary.Header;
@@ -36,6 +37,7 @@ namespace opc.ua.pubsub.dotnet.client
         private readonly ushort                             m_WriterId;
         private          DataSetType                        m_DataSetType;
         private          MetaFrame                          m_MetaFrame;
+        private          ILogger                            m_Logger;
 
         public ProcessDataSet( string publisherId, string name, ushort writerId, DataSetType dataSetType )
         {
@@ -147,7 +149,7 @@ namespace opc.ua.pubsub.dotnet.client
                     Array.Copy( rawMessage, i, chunkedMessage.ChunkData, 0, length );
                     using ( MemoryStream stream = new MemoryStream() )
                     {
-                        chunkedMessage.Encode( stream );
+                        chunkedMessage.Encode( m_Logger, stream );
                         rawChunks.Add( stream.ToArray() );
                     }
                 }
@@ -219,7 +221,7 @@ namespace opc.ua.pubsub.dotnet.client
             delta.Timestamp                    = DateTime.Now;
             using ( MemoryStream outputStream = new MemoryStream() )
             {
-                delta.Encode( outputStream );
+                delta.Encode( m_Logger, outputStream );
                 return outputStream.ToArray();
             }
         }
@@ -234,7 +236,7 @@ namespace opc.ua.pubsub.dotnet.client
             byte[] rawData;
             using ( MemoryStream stream = new MemoryStream() )
             {
-                keepAliveMessage.Encode( stream );
+                keepAliveMessage.Encode( m_Logger, stream );
                 rawData = stream.ToArray();
                 return rawData;
             }
@@ -245,7 +247,7 @@ namespace opc.ua.pubsub.dotnet.client
             KeyFrame key = GetKeyFrame( sequenceNumber );
             using ( MemoryStream outputStream = new MemoryStream() )
             {
-                key.Encode( outputStream );
+                key.Encode( m_Logger, outputStream );
                 return outputStream.ToArray();
             }
         }
@@ -259,7 +261,7 @@ namespace opc.ua.pubsub.dotnet.client
             byte[] rawMessage = null;
             using ( MemoryStream outputStream = new MemoryStream() )
             {
-                m_MetaFrame.Encode( outputStream, withHeader );
+                m_MetaFrame.Encode( m_Logger, outputStream, withHeader );
                 rawMessage = outputStream.ToArray();
             }
             return rawMessage;
@@ -494,7 +496,7 @@ namespace opc.ua.pubsub.dotnet.client
             byte[] rawData;
             using ( MemoryStream stream = new MemoryStream() )
             {
-                dataFrame.EncodeChunk( stream );
+                dataFrame.EncodeChunk( m_Logger, stream );
                 rawData = stream.ToArray();
             }
             List<byte[]> rawChunks = new List<byte[]>();
@@ -527,7 +529,7 @@ namespace opc.ua.pubsub.dotnet.client
                     Array.Copy( rawData, i, chunkedMessage.ChunkData, 0, length );
                     using ( MemoryStream stream = new MemoryStream() )
                     {
-                        chunkedMessage.Encode( stream );
+                        chunkedMessage.Encode( m_Logger, stream );
                         rawChunks.Add( stream.ToArray() );
                     }
                 }

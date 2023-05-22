@@ -1,10 +1,11 @@
 ﻿// Copyright 2020 Siemens AG
 // SPDX-License-Identifier: MIT
 
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
-using opc.ua.pubsub.dotnet.binary;
+using Microsoft.Extensions.Logging.Abstractions;
 using opc.ua.pubsub.dotnet.binary.Decode;
 using opc.ua.pubsub.dotnet.binary.Messages;
 using opc.ua.pubsub.dotnet.binary.Messages.Chunk;
@@ -12,6 +13,7 @@ using opc.ua.pubsub.dotnet.binary.Messages.Delta;
 using opc.ua.pubsub.dotnet.binary.Messages.Key;
 using opc.ua.pubsub.dotnet.binary.Messages.Meta;
 using NUnit.Framework;
+using opc.ua.pubsub.dotnet.binary.Storage;
 
 namespace opc.ua.pubsub.dotnet.binary.test
 {
@@ -115,7 +117,9 @@ namespace opc.ua.pubsub.dotnet.binary.test
                                       {
                                               LegacyFieldFlagEncoding = true
                                       };
-            Decoder = new DecodeMessage( options );
+
+            NullLogger<DecodeMessage> nullLogger = new NullLogger<DecodeMessage>();
+            Decoder = new DecodeMessage( nullLogger, options );
             TestDataFolder = Path.Combine( Path.GetDirectoryName( Assembly.GetExecutingAssembly()
                                                                           .Location
                                                                 ),

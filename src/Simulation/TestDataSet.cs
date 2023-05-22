@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Microsoft.Extensions.Logging;
 using opc.ua.pubsub.dotnet.binary.Header;
 using opc.ua.pubsub.dotnet.binary.Messages.Chunk;
 using opc.ua.pubsub.dotnet.binary.Messages.Meta;
@@ -15,6 +16,7 @@ namespace opc.ua.pubsub.dotnet.simulation
     {
         protected MetaFrame m_MetaFrame;
         protected string    m_PublisherID;
+        protected ILogger   m_Logger;
 
         public TestDataSet( string publisherID )
         {
@@ -33,7 +35,7 @@ namespace opc.ua.pubsub.dotnet.simulation
             byte[] rawMessage = null;
             using ( MemoryStream outputStream = new MemoryStream() )
             {
-                m_MetaFrame.EncodeChunk( outputStream );
+                m_MetaFrame.EncodeChunk( m_Logger, outputStream );
                 rawMessage = outputStream.ToArray();
             }
             List<byte[]> rawChunks = new List<byte[]>();
@@ -55,7 +57,7 @@ namespace opc.ua.pubsub.dotnet.simulation
                 Array.Copy( rawMessage, i, chunkedMessage.ChunkData, 0, length );
                 using ( MemoryStream stream = new MemoryStream() )
                 {
-                    chunkedMessage.Encode( stream );
+                    chunkedMessage.Encode( m_Logger, stream );
                     rawChunks.Add( stream.ToArray() );
                 }
             }
@@ -73,7 +75,7 @@ namespace opc.ua.pubsub.dotnet.simulation
             }
             using ( MemoryStream outputStream = new MemoryStream() )
             {
-                m_MetaFrame.Encode( outputStream );
+                m_MetaFrame.Encode( m_Logger, outputStream );
                 return outputStream.ToArray();
             }
         }

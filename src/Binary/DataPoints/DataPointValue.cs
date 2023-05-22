@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using opc.ua.pubsub.dotnet.binary.Messages.Meta;
 using opc.ua.pubsub.dotnet.binary.Messages.Meta.Structure;
 
@@ -40,8 +41,8 @@ namespace opc.ua.pubsub.dotnet.binary.DataPoints
             return areEqual;
         }
 
-        public abstract void Decode( Stream inputStream );
-        public abstract void Encode( Stream outputStream );
+        public abstract void Decode( ILogger logger, Stream inputStream );
+        public abstract void Encode( ILogger logger, Stream outputStream );
 
         public override bool Equals( object obj )
         {

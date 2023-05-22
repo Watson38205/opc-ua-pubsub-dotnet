@@ -5,20 +5,16 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using opc.ua.pubsub.dotnet.binary.DataPoints;
 using opc.ua.pubsub.dotnet.binary.Messages.Meta;
 using opc.ua.pubsub.dotnet.binary.Messages.Meta.Structure;
-using log4net;
+using Microsoft.Extensions.Logging;
 using File = opc.ua.pubsub.dotnet.binary.DataPoints.File;
 
 namespace opc.ua.pubsub.dotnet.binary.Messages
 {
     public class DataFrame : NetworkMessage
     {
-        private static readonly ILog Logger = LogManager.GetLogger( MethodBase.GetCurrentMethod()
-                                                                              .DeclaringType
-                                                                  );
         public DataFrame() : this( new EncodingOptions() ) { }
 
         public DataFrame( EncodingOptions options )
@@ -64,7 +60,7 @@ namespace opc.ua.pubsub.dotnet.binary.Messages
             return null;
         }
 
-        public override void Encode( Stream outputStream, bool withHeader = true )
+        public override void Encode( ILogger logger, Stream outputStream, bool withHeader = true )
         {
             if ( outputStream == null || !outputStream.CanWrite )
             {
@@ -79,7 +75,7 @@ namespace opc.ua.pubsub.dotnet.binary.Messages
 
             // 2. DataSet Payload Header
             PayloadHeader.Encode( outputStream );
-            EncodeChunk( outputStream );
+            EncodeChunk( logger, outputStream );
         }
 
         /// <summary>
@@ -87,7 +83,7 @@ namespace opc.ua.pubsub.dotnet.binary.Messages
         ///     Configuration Version and Message Sequence Number.
         /// </summary>
         /// <param name="outputStream"></param>
-        public virtual void EncodeChunk( Stream outputStream )
+        public virtual void EncodeChunk( ILogger logger, Stream outputStream )
         {
             // 3. DataSetFlags1
             outputStream.WriteByte( Flags1.RawValue );
@@ -198,7 +194,7 @@ namespace opc.ua.pubsub.dotnet.binary.Messages
             return true;
         }
 
-        protected static DataPointValue ParseDataPoint( Stream inputStream, MetaFrame meta, ushort index )
+        protected static DataPointValue ParseDataPoint( ILogger logger, Stream inputStream, MetaFrame meta, ushort index )
         {
             if ( index > meta.FieldMetaDataList.Count - 1 )
             {
@@ -209,18 +205,18 @@ namespace opc.ua.pubsub.dotnet.binary.Messages
             FieldMetaData metaData = meta.FieldMetaDataList[index];
             if ( metaData.Index != index )
             {
-                Logger.Error( $"Index does not match: FieldMetaData.Index {metaData.Index} != {index} read from Stream." );
+                logger.LogError( $"Index does not match: FieldMetaData.Index {metaData.Index} != {index} read from Stream." );
             }
-            if ( Logger.IsDebugEnabled )
+            if ( logger.IsEnabled(LogLevel.Debug) )
             {
-                Logger.Debug( $"Decoding item at position {index} in Meta Frame. Using FieldMetaData:" );
-                Logger.Debug( metaData );
+                logger.LogDebug( $"Decoding item at position {index} in Meta Frame. Using FieldMetaData:" );
+                logger.LogDebug( metaData.ToString() );
             }
             DataPointValue item = null;
             if ( metaData.DataType == File.PreDefinedNodeID )
             {
                 item = new File();
-                item.Decode( inputStream );
+                item.Decode( logger, inputStream );
             }
             else
             {
@@ -237,14 +233,14 @@ namespace opc.ua.pubsub.dotnet.binary.Messages
                         item.EnumDescription = meta.EnumDataTypes.First( s => s.Value.Name.Name.Value == enumName )
                                                    .Value;
                     }
-                    item.Decode( inputStream );
+                    item.Decode( logger, inputStream );
                 }
             }
 
             // ReSharper disable once ConditionIsAlwaysTrueOrFalse
             if ( item == null )
             {
-                Logger.Error( $"Unable to decode value {metaData.DataType} at position {index} in message." );
+                logger.LogError( $"Unable to decode value {metaData.DataType} at position {index} in message." );
                 return null;
             }
             item.Name       = metaData.Name.Value;
@@ -253,18 +249,18 @@ namespace opc.ua.pubsub.dotnet.binary.Messages
             return item;
         }
 
-        protected static void WriteSingleDataPoint( Stream outputStream, DataPointValue dpv )
+        protected static void WriteSingleDataPoint( ILogger logger, Stream outputStream, DataPointValue dpv )
         {
             switch ( dpv )
             {
                 case ProcessDataPointValue pdv:
                 {
-                    pdv.Encode( outputStream );
+                    pdv.Encode( logger, outputStream );
                     break;
                 }
 
                 case File file:
-                    file.Encode( outputStream );
+                    file.Encode( logger, outputStream );
                     break;
 
                 case null:

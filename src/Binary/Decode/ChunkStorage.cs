@@ -2,20 +2,14 @@
 // SPDX-License-Identifier: MIT
 
 using System.Collections.Generic;
-using System.Reflection;
-using log4net;
 
 namespace opc.ua.pubsub.dotnet.binary.Decode
 {
     public class ChunkStorage
     {
-        private static readonly ILog Logger = LogManager.GetLogger( MethodBase.GetCurrentMethod()
-                                                                              .DeclaringType
-                                                                  );
-
         public ChunkStorage()
         {
-            Chunks = new SortedSet<Chunk>( new ChunkComparer() );
+            Chunks   = new SortedSet<Chunk>( new ChunkComparer() );
         }
 
         public ushort DataSetWriterID { get; set; }
@@ -24,10 +18,6 @@ namespace opc.ua.pubsub.dotnet.binary.Decode
         {
             get
             {
-                if ( Logger.IsDebugEnabled )
-                {
-                    Logger.Debug( $"TotalSize: {TotalSize}, ReceivedSize {ReceivedSize} ? " );
-                }
                 return TotalSize == ReceivedSize;
             }
         }

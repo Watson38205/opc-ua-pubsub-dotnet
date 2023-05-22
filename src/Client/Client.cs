@@ -35,6 +35,7 @@ using System.Security.Authentication;
 using System.Text;
 using MQTTnet.Exceptions;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 
 [assembly: InternalsVisibleTo( "Client.Test" )]
 
@@ -70,13 +71,13 @@ namespace opc.ua.pubsub.dotnet.client
         private static readonly string StatusMessageOffline = "{ \"status\": \"offline\" }";
         private static readonly string StatusMessageDisconnected = "{ \"status\": \"disconnected\" }";
 
-        internal static         ushort                                     m_SequenceNumber;
-        private                 IMqttClient                                m_MqttClient;
-        private                 IMqttNetLogger                             m_MqttLogger;
-        private static readonly ILog                                       Logger = LogManager.GetLogger( typeof(Client) );
-        private                 ConcurrentQueue<DecodeMessage.MqttMessage> m_MessageQueue;
-        private                 Task                                       m_DecoderTask;
-        private                 DecodeMessage                              m_Decoder;
+        internal static ushort                                     m_SequenceNumber;
+        private         IMqttClient                                m_MqttClient;
+        private         IMqttNetLogger                             m_MqttLogger;
+        private         ILogger                                    m_Logger;
+        private         ConcurrentQueue<DecodeMessage.MqttMessage> m_MessageQueue;
+        private         Task                                       m_DecoderTask;
+        private         DecodeMessage                              m_Decoder;
 
         #endregion
 
@@ -127,7 +128,8 @@ namespace opc.ua.pubsub.dotnet.client
             LastKeyAndMetaSentTimes         = new Dictionary<uint, DateTime>();
             Settings                        = settings;
             ClientId                        = clientId ?? $"Client_{Assembly.GetEntryAssembly()?.FullName.Split( ',' )[0]}_{Environment.MachineName}";
-            m_MqttLogger = new MqttNetNullLogger();
+            m_Logger                        = Log4netAdapter<Client>.CreateLogger();
+            m_MqttLogger                    = new MqttNetNullLogger();
         }
 
         private void OnLogMessagePublished( object sender, MqttNetLogMessagePublishedEventArgs e )
@@ -149,7 +151,7 @@ namespace opc.ua.pubsub.dotnet.client
 
             if ( credentials != null && !credentials.HasCertificates() )
             {
-                Logger.Error( "No certificates imported" );
+                m_Logger.LogError( "No certificates imported" );
             }
             MqttClientOptionsBuilder optionsBuilder = CreateOptionsBuilder( credentials );
 
@@ -165,7 +167,7 @@ namespace opc.ua.pubsub.dotnet.client
             m_MqttClient.ApplicationMessageReceivedAsync += MqttClientOnApplicationMessageReceived;
             m_MqttClient.DisconnectedAsync               += MqttClientOnDisconnected;
             MqttClientOptions options = optionsBuilder.Build();
-            Logger.Debug( $"Waiting for connection ... (Timeout: {options.Timeout.TotalSeconds} s, MqttKeepAlive: {options.KeepAlivePeriod.TotalSeconds} s)" );
+            m_Logger.LogDebug( $"Waiting for connection ... (Timeout: {options.Timeout.TotalSeconds} s, MqttKeepAlive: {options.KeepAlivePeriod.TotalSeconds} s)" );
             m_MqttClient.ConnectAsync( options )
                         .Wait();
 
@@ -269,10 +271,10 @@ namespace opc.ua.pubsub.dotnet.client
 
             if ( m_DecoderTask == null && !Settings.Client.RawDataMode)
             {
-                m_MessageQueue = new ConcurrentQueue<DecodeMessage.MqttMessage>();
-                m_Decoder = new DecodeMessage( m_MessageQueue, Options );
+                m_MessageQueue           =  new ConcurrentQueue<DecodeMessage.MqttMessage>();
+                m_Decoder                =  new DecodeMessage( Log4netAdapter<DecodeMessage>.CreateLogger(), m_MessageQueue, Options );
                 m_Decoder.MessageDecoded += DecoderOnMessageDecoded;
-                m_DecoderTask = Task.Run( () => m_Decoder.Start() );
+                m_DecoderTask            =  Task.Run( () => m_Decoder.Start() );
             }
 
 
@@ -284,8 +286,8 @@ namespace opc.ua.pubsub.dotnet.client
                 .Build();
 
             m_MqttClient.SubscribeAsync( mqttSubscribeOptions ).Wait();
-                
-            Logger.Debug( $"MQTT SubscribeAsync DONE, Topic: {topic}" );
+
+            m_Logger.LogDebug( $"MQTT SubscribeAsync DONE, Topic: {topic}" );
         }
 
         private Task MqttClientOnDisconnected( MqttClientDisconnectedEventArgs e )
@@ -305,7 +307,7 @@ namespace opc.ua.pubsub.dotnet.client
 
         private Task MqttClientOnApplicationMessageReceived( MqttApplicationMessageReceivedEventArgs e )
         {
-            Logger.Debug( "OnMessage received. Enqueuing message..." );
+            m_Logger.LogDebug( "OnMessage received. Enqueuing message..." );
             
             string topic = e.ApplicationMessage.Topic;
             byte[] payload = e.ApplicationMessage.Payload;
@@ -316,7 +318,7 @@ namespace opc.ua.pubsub.dotnet.client
             }
             else if ( m_MessageQueue == null )
             {
-                Logger.Debug( "Message received without initialized queue!" );
+                m_Logger.LogDebug( "Message received without initialized queue!" );
             }
             else
             {
@@ -591,12 +593,12 @@ namespace opc.ua.pubsub.dotnet.client
                 KeyFrame  keyFrame       = CreateFileKeyFrame( metaFrame, file );
                 using ( MemoryStream outputStream = new MemoryStream() )
                 {
-                    metaFrame.Encode( outputStream );
+                    metaFrame.Encode( m_Logger, outputStream );
                     metaFrameBytes = outputStream.ToArray();
                 }
                 using ( MemoryStream outputStream = new MemoryStream() )
                 {
-                    keyFrame.Encode( outputStream );
+                    keyFrame.Encode( m_Logger, outputStream );
                     keyFrameBytes = outputStream.ToArray();
                 }
                 try
@@ -609,7 +611,7 @@ namespace opc.ua.pubsub.dotnet.client
             }
             catch ( Exception e )
             {
-                Logger.Error( "SendFile failed! " + e );
+                m_Logger.LogError( "SendFile failed! " + e );
                 ForwardException( e );
             }
             return fileSent;
@@ -820,7 +822,7 @@ namespace opc.ua.pubsub.dotnet.client
                 {
                     tokenSource.Cancel();
                     Console.WriteLine("Timeout while publishing message via MQTT for client: " + ClientId);
-                    Logger.Error("Timeout while publishing message via MQTT for client:" + ClientId);
+                    m_Logger.LogError( "Timeout while publishing message via MQTT for client:" + ClientId);
                 }
                 else
                 {
@@ -831,9 +833,9 @@ namespace opc.ua.pubsub.dotnet.client
             catch (Exception e)
             {
                 Console.Error.WriteLine($"Error while publishing message via MQTT for client: " + ClientId);
-                Console.Error.WriteLine("Exception:" + e);
-                Logger.Error("Error while publishing message via MQTT for client: " + ClientId);
-                Logger.Error("Exception:" + e);
+                Console.Error.WriteLine("Exception:"                                            + e);
+                m_Logger.LogError( "Error while publishing message via MQTT for client: "       + ClientId);
+                m_Logger.LogError("Exception:"                                                 + e);
                 ForwardException(e);
 
                 //try again (doesnt't make sense for all errors, 
@@ -965,27 +967,27 @@ namespace opc.ua.pubsub.dotnet.client
             // the validation check errors shall be ignored by setting
             if ( eventArgs.ClientOptions.TlsOptions.IgnoreCertificateChainErrors )
             {
-                Logger.Error( "Ignoring broker certificate validation errors." );
+                m_Logger.LogError( "Ignoring broker certificate validation errors." );
                 return true;
             }
 
             // not valid
-            Logger.Error( "Broker certificate validation failed" );
-            if ( Logger.IsDebugEnabled )
+            m_Logger.LogError( "Broker certificate validation failed" );
+            if ( m_Logger.IsEnabled(LogLevel.Debug))
             {
                 try
                 {
-                    Logger.Error( "Remote Certificate:" );
+                    m_Logger.LogError( "Remote Certificate:" );
                     using ( X509Certificate2 certificate = new X509Certificate2( eventArgs.Certificate ) )
                     {
-                        CertifacteLogging.LogCertifacte( certificate, Logger );
+                        CertifacteLogging.LogCertifacte( certificate, m_Logger );
                     }
-                    Logger.Error( "Remote Certificate Chain:" );
-                    CertifacteLogging.LogCertificateChain( eventArgs.Chain, Logger );
+                    m_Logger.LogError( "Remote Certificate Chain:" );
+                    CertifacteLogging.LogCertificateChain( eventArgs.Chain, m_Logger );
                 }
                 catch ( Exception ex )
                 {
-                    Logger.Error( "Exception while logging certificate details.", ex );
+                    m_Logger.LogError( "Exception while logging certificate details.", ex );
                 }
             }
             return false;

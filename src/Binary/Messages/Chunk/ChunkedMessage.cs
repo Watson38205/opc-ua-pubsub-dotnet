@@ -1,6 +1,7 @@
 ﻿// Copyright 2020 Siemens AG
 // SPDX-License-Identifier: MIT
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
 
@@ -44,7 +45,7 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.Chunk
             return instance;
         }
 
-        public override void Encode( Stream outputStream, bool withHeader = true )
+        public override void Encode( ILogger logger, Stream outputStream, bool withHeader = true )
         {
             if ( outputStream == null || !outputStream.CanWrite )
             {
