@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
 using opc.ua.pubsub.dotnet.binary;
 using opc.ua.pubsub.dotnet.binary.DataPoints;
+using opc.ua.pubsub.dotnet.binary.Decode;
 using opc.ua.pubsub.dotnet.binary.Header;
 using opc.ua.pubsub.dotnet.binary.Messages;
 using opc.ua.pubsub.dotnet.binary.Messages.Chunk;
@@ -48,6 +49,7 @@ namespace opc.ua.pubsub.dotnet.client
             m_MetaFrame     = null;
             SetDataSetType( dataSetType );
             Description = new LocalizedText();
+            m_Logger    = Log4netAdapter<DecodeMessage>.CreateLogger();
         }
 
         public LocalizedText Description { get; set; }
