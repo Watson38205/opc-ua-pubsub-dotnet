@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFrameworks>net6.0;net7.0</TargetFrameworks>
     <ApplicationIcon />
     <StartupObject />
     <PackageId>opc.ua.pubsub.dotnet.client</PackageId>
@@ -18,7 +18,8 @@
       The library itself is written in .NET Standard 2.0 so it supports a wide range of targets (.NET Core, .NET Framework, Mono, Xamarin, Unity, UWP).
       https://github.com/siemens/opc-ua-pubsub-dotnet
     </Description>
-   </PropertyGroup>
+    <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <WarningLevel>0</WarningLevel>
