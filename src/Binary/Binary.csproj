@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
-    <Platforms>AnyCPU;x64;x86</Platforms>
+    <TargetFrameworks>net6.0;net7.0</TargetFrameworks>
+    <Platforms>AnyCPU</Platforms>
     <PackageId>opc.ua.pubsub.dotnet.binary</PackageId>
     <AssemblyName>opc.ua.pubsub.dotnet.binary</AssemblyName>
     <Company>Siemens AG</Company>
@@ -15,7 +15,8 @@
       It's not offering the full flexibility of OPC UA PubSub, but it supports encoding and decoding of all data types which are used by Siemens SICAM A8000 and SICAM GridEdge. You can easily extend this library to support additional data types.
       The library itself is written in .NET Standard 2.0 so it supports a wide range of targets (.NET Core, .NET Framework, Mono, Xamarin, Unity, UWP).
       https://github.com/siemens/opc-ua-pubsub-dotnet
-    </Description>    
+    </Description>
+    <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
 
 
