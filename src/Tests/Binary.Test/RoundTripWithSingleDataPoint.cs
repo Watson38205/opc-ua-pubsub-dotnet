@@ -105,7 +105,7 @@ namespace opc.ua.pubsub.dotnet.binary.test
         public void Setup()
         {
             NullLogger<DecodeMessage> nullLogger = new NullLogger<DecodeMessage>();
-            m_DecodeMessage = new DecodeMessage( nullLogger, null, new EncodingOptions());
+            m_DecodeMessage = new DecodeMessage( nullLogger );
         }
 
         [TestCaseSource( nameof(SingleItemTestCases) )]

@@ -29,13 +29,13 @@ namespace opc.ua.pubsub.dotnet.binary.Decode
 
         public DecodeMessage( ILogger<DecodeMessage> logger, EncodingOptions options ) : this( logger, null, options ) { }
 
-        public DecodeMessage( ILogger<DecodeMessage> logger, ConcurrentQueue<MqttMessage> messageQueue = null, EncodingOptions options = null )
+        public DecodeMessage( ILogger<DecodeMessage> logger, ConcurrentQueue<MqttMessage> messageQueue = null, EncodingOptions options = null)
         {
-            m_Logger           = logger ?? throw new ArgumentNullException( nameof(logger) );
+            m_Logger           = logger       ?? throw new ArgumentNullException( nameof(logger) );
             m_MessageQueue     = messageQueue ?? new ConcurrentQueue<MqttMessage>();
-            m_LocalMetaStorage = new LocalMetaStorage(logger);
+            Options            = options      ?? new EncodingOptions();
+            m_LocalMetaStorage = new LocalMetaStorage(logger, Options);
             m_ChunkManager     = new ChunkManager(logger);
-            Options            = options ?? new EncodingOptions();
         }
 
         private EncodingOptions                 Options { get; }

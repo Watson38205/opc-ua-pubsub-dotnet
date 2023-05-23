@@ -195,7 +195,7 @@ namespace opc.ua.pubsub.dotnet.binary.test
                 dataSet.AddDataPoint( dataPoint );
             }
             NullLogger<DecodeMessage> nullLogger = new NullLogger<DecodeMessage>();
-            DecodeMessage decoder = new DecodeMessage( nullLogger, null, new EncodingOptions() );
+            DecodeMessage decoder = new DecodeMessage( nullLogger );
             byte[]         encodedMeta        = dataSet.GetEncodedMetaFrame( new EncodingOptions(), 1, true );
             byte[]         encodedKey         = dataSet.GetEncodedKeyFrame( 2 );
             NetworkMessage metaNetworkMessage = decoder.ParseBinaryMessage( encodedMeta );

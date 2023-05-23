@@ -3,29 +3,31 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Logging;
+using opc.ua.pubsub.dotnet.binary.Header;
 using opc.ua.pubsub.dotnet.binary.Messages.Meta;
 
 namespace opc.ua.pubsub.dotnet.binary.Storage
 {
     public class LocalMetaStorage
     {
-        private readonly ILogger m_Logger;
-        private const    int     MaximumMetaMessagePerPublisher = 10;
+        private readonly ILogger         m_Logger;
+        private readonly EncodingOptions m_EncodingOptions;
+        private const    int             MaximumMetaMessagePerPublisher = 10;
         
         /// <summary>
         ///     Used for storing the meta message only locally, not in Azure.
         ///     This is only used if the corresponding FeatureToggle is set.
         /// </summary>
+        private readonly ConcurrentDictionary<string, ConcurrentDictionary<ushort, ConcurrentDictionary<ConfigurationVersion, MetaFrame>>> m_DeviceMetaMessages = new();
 
-        //protected readonly ConcurrentDictionary<string, ConcurrentDictionary<ConfigurationVersion, MetaFrame>> m_DeviceMetaMessages = new ConcurrentDictionary<string, ConcurrentDictionary<ConfigurationVersion, MetaFrame>>();
-        protected readonly ConcurrentDictionary<string, ConcurrentDictionary<ushort, ConcurrentDictionary<ConfigurationVersion, MetaFrame>>> m_DeviceMetaMessages =
-                new ConcurrentDictionary<string, ConcurrentDictionary<ushort, ConcurrentDictionary<ConfigurationVersion, MetaFrame>>>();
-
-        public LocalMetaStorage(ILogger logger)
+        public LocalMetaStorage(ILogger logger, EncodingOptions encodingOptions )
         {
-            m_Logger = logger ?? throw new ArgumentNullException( nameof(logger) );
+            m_Logger             = logger          ?? throw new ArgumentNullException( nameof(logger) );
+            m_EncodingOptions    = encodingOptions ?? throw new ArgumentNullException( nameof( encodingOptions ) );
+            LoadDiskMetaFrameCache();
         }
 
         public bool IsMetaMessageAlreadyKnown( string publisherID, ushort writerID, ConfigurationVersion cfg )
@@ -70,7 +72,9 @@ namespace opc.ua.pubsub.dotnet.binary.Storage
             return metaMessage;
         }
 
-        public void StoreMetaMessageLocally( MetaFrame metaFrame )
+        public void StoreMetaMessageLocally( MetaFrame metaFrame ) => StoreMetaMessageLocally( metaFrame, true );
+
+        private void StoreMetaMessageLocally( MetaFrame metaFrame, bool cacheLocalDisk )
         {
             string               pubID         = metaFrame.NetworkMessageHeader.PublisherID.Value;
             ConfigurationVersion configVersion = metaFrame.ConfigurationVersion;
@@ -93,17 +97,88 @@ namespace opc.ua.pubsub.dotnet.binary.Storage
                 cfgDictionary = new ConcurrentDictionary<ConfigurationVersion, MetaFrame>();
                 publisherDictionary.TryAdd( writerID, cfgDictionary );
             }
-            if ( cfgDictionary.Count > 10 )
+            if ( cfgDictionary.Count > MaximumMetaMessagePerPublisher )
             {
-                MetaFrame dummy;
-                cfgDictionary.TryRemove( cfgDictionary.Keys.OrderBy( a => a )
-                                                      .First(),
-                                         out dummy
-                                       );
+                cfgDictionary.TryRemove( cfgDictionary.Keys.OrderBy( a => a ).First(), out MetaFrame removedMetaFrame );
+                RemoveMetaFrameFromDisk( removedMetaFrame );
             }
 
             // Add the Meta Message if it doesn't exist yet or if it's already present, replace it.
             cfgDictionary.AddOrUpdate( configVersion, metaFrame, ( existingVersion, existingFrame ) => metaFrame );
+
+            // Only cache to local disk if required and cache directory specified
+            if ( cacheLocalDisk  && !string.IsNullOrWhiteSpace(m_EncodingOptions.DiskMetaMessageCacheDirectory))
+            {
+                SaveMetaFrameToDisk( metaFrame, pubID, writerID, configVersion );
+            }
+        }
+
+        /// <summary>
+        /// Loads the local disk meta frames into the cache.
+        /// </summary>
+        private void LoadDiskMetaFrameCache()
+        {
+            // Check whether the cache directory is specified
+            var metaDirectory = m_EncodingOptions.DiskMetaMessageCacheDirectory;
+            if ( !Directory.Exists( metaDirectory ) )
+            {
+                return;
+            }
+
+            // Process al the meta frames cache in the directory
+            foreach ( string fileName in Directory.EnumerateFiles( metaDirectory, "*.meta" ) )
+            {
+                m_Logger.LogDebug( "Loading from disk meta frame {FilePath}", fileName );
+                using MemoryStream   memoryStream         = new MemoryStream( File.ReadAllBytes( fileName ) );
+                NetworkMessageHeader networkMessageHeader = NetworkMessageHeader.Decode( memoryStream );
+                MetaFrame            metaFrame            = MetaFrame.Decode( m_Logger, memoryStream, m_EncodingOptions);
+                metaFrame.NetworkMessageHeader            = networkMessageHeader;
+                StoreMetaMessageLocally( metaFrame, false );
+            }
+        }
+
+        /// <summary>
+        /// Saves the meta frame to the local disk as a caching mechanism.
+        /// </summary>
+        private void SaveMetaFrameToDisk( MetaFrame metaFrame, string publisherId, Int32 writerID, ConfigurationVersion configurationVersion )
+        {
+            var    metaDirectory = m_EncodingOptions.DiskMetaMessageCacheDirectory;
+            string fileName      = $"{metaDirectory}\\{publisherId}-{writerID}-{configurationVersion.Major}-{configurationVersion.Minor}.meta";
+            Directory.CreateDirectory( Path.GetDirectoryName( fileName ) );
+            using MemoryStream memoryStream = new MemoryStream();
+            metaFrame.Encode( m_Logger, memoryStream );
+            m_Logger.LogDebug( "Writing to disk meta frame {FilePath}", fileName );
+            File.WriteAllBytes( fileName, memoryStream.ToArray() );
+        }
+
+        /// <summary>
+        /// Removes the meta frame from the local disk.
+        /// </summary>
+        /// <param name="metaFrame">The meta frame.</param>
+        private void RemoveMetaFrameFromDisk( MetaFrame metaFrame )
+        {
+            // Check whether the cache directory is specified
+            var metaDirectory = m_EncodingOptions.DiskMetaMessageCacheDirectory;
+            if ( !Directory.Exists( metaDirectory ) )
+            {
+                return;
+            }
+
+            // Delete the meta frame file
+            string               publisherId          = metaFrame.NetworkMessageHeader.PublisherID.Value;
+            ConfigurationVersion configurationVersion = metaFrame.ConfigurationVersion;
+            ushort               writerID             = metaFrame.DataSetWriterID;
+            string               fileName             = $"{metaDirectory}\\{publisherId}-{writerID}-{configurationVersion.Major}-{configurationVersion.Minor}.meta";
+
+            try
+            {
+                File.Delete( fileName );
+                m_Logger.LogDebug( "Deleted disk meta frame {FilePath}", fileName );
+            }
+            catch ( Exception e )
+            {
+                m_Logger.LogError(e, "Failed to delete disk meta frame {FilePath}", fileName );
+            }
         }
     }
 }

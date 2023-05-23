@@ -7,8 +7,13 @@ namespace opc.ua.pubsub.dotnet.binary
 {
     public class EncodingOptions : IEquatable<EncodingOptions>
     {
-        public bool LegacyFieldFlagEncoding { get; set; }
-        public bool SendMetaMessageWithoutRetain { get; set; }
+        public bool   LegacyFieldFlagEncoding       { get; set; }
+        public bool   SendMetaMessageWithoutRetain  { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the directory for disk based meta message cache.
+        /// </summary>
+        public string DiskMetaMessageCacheDirectory { get; set; }
 
         public bool Equals( EncodingOptions other )
         {
@@ -20,9 +25,9 @@ namespace opc.ua.pubsub.dotnet.binary
             {
                 return true;
             }
-            return 
-                (LegacyFieldFlagEncoding == other.LegacyFieldFlagEncoding) && 
-                (SendMetaMessageWithoutRetain == other.SendMetaMessageWithoutRetain);
+            return LegacyFieldFlagEncoding      == other.LegacyFieldFlagEncoding      && 
+                   SendMetaMessageWithoutRetain == other.SendMetaMessageWithoutRetain && 
+                   DiskMetaMessageCacheDirectory.Equals( other.DiskMetaMessageCacheDirectory, StringComparison.InvariantCultureIgnoreCase );
         }
 
         public override bool Equals( object obj )
@@ -44,12 +49,7 @@ namespace opc.ua.pubsub.dotnet.binary
 
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = LegacyFieldFlagEncoding.GetHashCode();
-                hashCode = ( hashCode * 397 ) ^ ( SendMetaMessageWithoutRetain.GetHashCode() );
-                return hashCode;
-            }
+            return HashCode.Combine( LegacyFieldFlagEncoding, SendMetaMessageWithoutRetain, DiskMetaMessageCacheDirectory );
         }
 
         public static bool operator ==( EncodingOptions left, EncodingOptions right )
