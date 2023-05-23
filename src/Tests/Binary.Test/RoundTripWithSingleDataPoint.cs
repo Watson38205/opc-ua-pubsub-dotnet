@@ -3,8 +3,6 @@
 
 using System;
 using System.Collections;
-using System.Collections.Concurrent;
-using opc.ua.pubsub.dotnet.binary;
 using opc.ua.pubsub.dotnet.binary.DataPoints;
 using opc.ua.pubsub.dotnet.binary.Decode;
 using opc.ua.pubsub.dotnet.binary.Messages;
@@ -15,10 +13,7 @@ using NUnit.Framework;
 using opc.ua.pubsub.dotnet.client;
 using opc.ua.pubsub.dotnet.binary.Header;
 using System.Collections.Generic;
-using System.Text;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using opc.ua.pubsub.dotnet.binary.Storage;
 
 namespace opc.ua.pubsub.dotnet.binary.test
 {
@@ -111,7 +106,7 @@ namespace opc.ua.pubsub.dotnet.binary.test
         public void Setup()
         {
             NullLogger<DecodeMessage> nullLogger = new NullLogger<DecodeMessage>();
-            m_DcodeMessage = new DecodeMessage( nullLogger );
+            m_DcodeMessage = new DecodeMessage( nullLogger, null, new EncodingOptions());
         }
 
         [TestCaseSource( nameof(SingleItemTestCases) )]

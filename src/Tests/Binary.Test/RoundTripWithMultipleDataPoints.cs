@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging.Abstractions;
 using opc.ua.pubsub.dotnet.binary.DataPoints;
@@ -13,7 +12,6 @@ using opc.ua.pubsub.dotnet.binary.Messages.Delta;
 using opc.ua.pubsub.dotnet.binary.Messages.Key;
 using opc.ua.pubsub.dotnet.binary.Messages.Meta;
 using NUnit.Framework;
-using opc.ua.pubsub.dotnet.binary.Storage;
 using opc.ua.pubsub.dotnet.client;
 
 namespace opc.ua.pubsub.dotnet.binary.test
@@ -172,7 +170,7 @@ namespace opc.ua.pubsub.dotnet.binary.test
                 dataSet.AddDataPoint( dataPoint );
             }
             NullLogger<DecodeMessage> nullLogger = new NullLogger<DecodeMessage>();
-            DecodeMessage decoder            = new DecodeMessage( nullLogger);
+            DecodeMessage decoder            = new DecodeMessage( nullLogger, null, new EncodingOptions());
             byte[]         encodedMeta        = dataSet.GetEncodedMetaFrame( new EncodingOptions(), 1, true );
             byte[]         encodedDelta       = dataSet.GetEncodedDeltaFrame( 2 );
             NetworkMessage metaNetworkMessage = decoder.ParseBinaryMessage( encodedMeta );
@@ -197,7 +195,8 @@ namespace opc.ua.pubsub.dotnet.binary.test
                 dataSet.AddDataPoint( dataPoint );
             }
             NullLogger<DecodeMessage> nullLogger = new NullLogger<DecodeMessage>();
-            DecodeMessage decoder = new DecodeMessage( nullLogger ); byte[]         encodedMeta        = dataSet.GetEncodedMetaFrame( new EncodingOptions(), 1, true );
+            DecodeMessage decoder = new DecodeMessage( nullLogger, null, new EncodingOptions() );
+            byte[]         encodedMeta        = dataSet.GetEncodedMetaFrame( new EncodingOptions(), 1, true );
             byte[]         encodedKey         = dataSet.GetEncodedKeyFrame( 2 );
             NetworkMessage metaNetworkMessage = decoder.ParseBinaryMessage( encodedMeta );
             Assert.That( metaNetworkMessage, Is.Not.Null );
