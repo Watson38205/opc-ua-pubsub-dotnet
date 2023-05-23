@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
-using opc.ua.pubsub.dotnet.binary;
+using Microsoft.Extensions.Logging.Abstractions;
 using opc.ua.pubsub.dotnet.binary.Decode;
 using opc.ua.pubsub.dotnet.binary.Messages;
 using opc.ua.pubsub.dotnet.binary.Messages.Delta;
@@ -30,12 +30,13 @@ namespace opc.ua.pubsub.dotnet.binary.test
                                            "Regression",
                                            "TypeB",
                                            "Events"
-                                         );
-            Decoder = new DecodeMessage( new EncodingOptions
-                                         {
-                                                 LegacyFieldFlagEncoding = false
-                                         }
-                                       );
+                    
+                                          );
+            NullLogger<DecodeMessage> nullLogger = new NullLogger<DecodeMessage>();
+            Decoder = new DecodeMessage( nullLogger, new EncodingOptions
+                                                     {
+                                                             LegacyFieldFlagEncoding = false
+                                                     } );
         }
 
         [Test]

@@ -4,20 +4,16 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using opc.ua.pubsub.dotnet.binary.DataPoints;
 using opc.ua.pubsub.dotnet.binary.Messages.Meta;
-using log4net;
 using File = opc.ua.pubsub.dotnet.binary.DataPoints.File;
 
 namespace opc.ua.pubsub.dotnet.binary.Messages.Delta
 {
     public class DeltaFrame : DataFrame
     {
-        private static readonly ILog Logger = LogManager.GetLogger( MethodBase.GetCurrentMethod()
-                                                                              .DeclaringType
-                                                                  );
         public DeltaFrame() { }
 
         public DeltaFrame( DataFrame dataFrame ) : base( dataFrame )
@@ -28,7 +24,7 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.Delta
         public ushort       FieldCount     { get; set; }
         public List<ushort> FieldIndexList { get; set; }
 
-        public static DeltaFrame Decode( Stream inputStream, DataFrame dataFrame, MetaFrame meta )
+        public static DeltaFrame Decode( ILogger logger, Stream inputStream, DataFrame dataFrame, MetaFrame meta )
         {
             if ( inputStream == null || !inputStream.CanRead || meta == null )
             {
@@ -53,7 +49,7 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.Delta
                     throw new Exception( "Decode DeltaFrame: Could not parse field index." );
                 }
                 instance.FieldIndexList.Add( indexFromStream.Value );
-                DataPointValue item = ParseDataPoint( inputStream, meta, indexFromStream.Value );
+                DataPointValue item = ParseDataPoint( logger, inputStream, meta, indexFromStream.Value );
                 if ( item != null )
                 {
                     instance.Items.Add( item );
@@ -62,24 +58,24 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.Delta
             return instance;
         }
 
-        public override void Encode( Stream outputStream, bool withHeader = true )
+        public override void Encode( ILogger logger, Stream outputStream, bool withHeader = true )
         {
             if ( outputStream == null || !outputStream.CanWrite )
             {
                 return;
             }
-            base.Encode( outputStream, withHeader );
-            EncodeDataPoints( outputStream );
+            base.Encode( logger, outputStream, withHeader );
+            EncodeDataPoints( logger, outputStream );
         }
 
-        public override void EncodeChunk( Stream outputStream )
+        public override void EncodeChunk( ILogger logger, Stream outputStream )
         {
             if ( outputStream == null || !outputStream.CanWrite )
             {
                 return;
             }
-            base.EncodeChunk( outputStream );
-            EncodeDataPoints( outputStream );
+            base.EncodeChunk( logger, outputStream );
+            EncodeDataPoints( logger, outputStream );
         }
 
         public override string ToString()
@@ -122,7 +118,7 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.Delta
             return sb.ToString();
         }
 
-        private void EncodeDataPoints( Stream outputStream )
+        private void EncodeDataPoints( ILogger logger, Stream outputStream )
         {
             BaseType.WriteToStream( outputStream, BitConverter.GetBytes( FieldCount ) );
             if ( FieldIndexList.Count != Items.Count )
@@ -135,7 +131,7 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.Delta
                 BaseType.WriteToStream( outputStream, BitConverter.GetBytes( FieldIndexList[i] ) );
 
                 // Value
-                WriteSingleDataPoint( outputStream, Items[i] );
+                WriteSingleDataPoint( logger, outputStream, Items[i] );
             }
         }
     }

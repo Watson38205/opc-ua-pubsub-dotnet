@@ -3,13 +3,12 @@
 
 using System.IO;
 using System.Text;
-using log4net;
+using Microsoft.Extensions.Logging;
 
 namespace opc.ua.pubsub.dotnet.binary.Messages.KeepAlive
 {
     public class KeepAliveFrame : DataFrame
     {
-        private static readonly ILog Logger = LogManager.GetLogger( typeof(KeepAliveFrame) );
         public KeepAliveFrame() { }
         public KeepAliveFrame( DataFrame dataFrame ) : base( dataFrame ) { }
 
@@ -23,22 +22,22 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.KeepAlive
             return instance;
         }
 
-        public override void Encode( Stream outputStream, bool withHeader = true )
+        public override void Encode( ILogger logger, Stream outputStream, bool withHeader = true )
         {
             if ( outputStream == null || !outputStream.CanWrite )
             {
                 return;
             }
-            base.Encode( outputStream, withHeader );
+            base.Encode( logger, outputStream, withHeader );
         }
 
-        public override void EncodeChunk( Stream outputStream )
+        public override void EncodeChunk( ILogger logger, Stream outputStream )
         {
             if ( outputStream == null || !outputStream.CanWrite )
             {
                 return;
             }
-            base.EncodeChunk( outputStream );
+            base.EncodeChunk( logger, outputStream );
         }
 
         #region Overrides of DataFrame

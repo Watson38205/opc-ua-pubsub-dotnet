@@ -4,20 +4,16 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using opc.ua.pubsub.dotnet.binary.DataPoints;
 using opc.ua.pubsub.dotnet.binary.Messages.Meta;
-using log4net;
 using File = opc.ua.pubsub.dotnet.binary.DataPoints.File;
 
 namespace opc.ua.pubsub.dotnet.binary.Messages.Key
 {
     public class KeyFrame : DataFrame
     {
-        private static readonly ILog Logger = LogManager.GetLogger( MethodBase.GetCurrentMethod()
-                                                                              .DeclaringType
-                                                                  );
         public KeyFrame() : this( new EncodingOptions() ) { }
 
         public KeyFrame( EncodingOptions options )
@@ -32,7 +28,7 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.Key
             Options = options;
         }
 
-        public static KeyFrame Decode( Stream inputStream, DataFrame dataFrame, MetaFrame meta )
+        public static KeyFrame Decode( ILogger logger, Stream inputStream, DataFrame dataFrame, MetaFrame meta )
         {
             if ( inputStream == null || !inputStream.CanRead || meta == null )
             {
@@ -49,13 +45,13 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.Key
             }
             if ( readUInt16.Value != fieldCount )
             {
-                Logger.Error( $"Number of fields from Meta: {meta.FieldMetaDataList.Count} vs. FieldCount: {readUInt16.Value}" );
+                logger.LogError( $"Number of fields from Meta: {meta.FieldMetaDataList.Count} vs. FieldCount: {readUInt16.Value}" );
                 return null;
             }
             instance.Items = new List<DataPointValue>( fieldCount );
             for ( ushort index = 0; index < fieldCount; index++ )
             {
-                DataPointValue item = ParseDataPoint( inputStream, meta, index );
+                DataPointValue item = ParseDataPoint( logger, inputStream, meta, index );
                 if ( item != null )
                 {
                     instance.Items.Add( item );
@@ -64,24 +60,24 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.Key
             return instance;
         }
 
-        public override void Encode( Stream outputStream, bool withHeader = true )
+        public override void Encode( ILogger logger, Stream outputStream, bool withHeader = true )
         {
             if ( outputStream == null || !outputStream.CanWrite )
             {
                 return;
             }
-            base.Encode( outputStream, withHeader );
-            EncodeDataPoints( outputStream );
+            base.Encode( logger, outputStream, withHeader );
+            EncodeDataPoints( logger, outputStream );
         }
 
-        public override void EncodeChunk( Stream outputStream )
+        public override void EncodeChunk( ILogger logger, Stream outputStream )
         {
             if ( outputStream == null || !outputStream.CanWrite )
             {
                 return;
             }
-            base.EncodeChunk( outputStream );
-            EncodeDataPoints( outputStream );
+            base.EncodeChunk( logger, outputStream );
+            EncodeDataPoints( logger, outputStream );
         }
 
         #region Overrides of DataFrame
@@ -128,12 +124,12 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.Key
 
         #endregion
 
-        private void EncodeDataPoints( Stream outputStream )
+        private void EncodeDataPoints( ILogger logger, Stream outputStream )
         {
             BaseType.WriteToStream( outputStream, BitConverter.GetBytes( (ushort)Items.Count ) );
             foreach ( DataPointValue dataPointValue in Items )
             {
-                WriteSingleDataPoint( outputStream, dataPointValue );
+                WriteSingleDataPoint( logger, outputStream, dataPointValue );
             }
         }
     }

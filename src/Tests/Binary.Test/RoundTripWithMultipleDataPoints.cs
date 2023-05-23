@@ -4,7 +4,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using opc.ua.pubsub.dotnet.binary;
+using Microsoft.Extensions.Logging.Abstractions;
 using opc.ua.pubsub.dotnet.binary.DataPoints;
 using opc.ua.pubsub.dotnet.binary.Decode;
 using opc.ua.pubsub.dotnet.binary.Messages;
@@ -169,7 +169,8 @@ namespace opc.ua.pubsub.dotnet.binary.test
             {
                 dataSet.AddDataPoint( dataPoint );
             }
-            DecodeMessage  decoder            = new DecodeMessage();
+            NullLogger<DecodeMessage> nullLogger = new NullLogger<DecodeMessage>();
+            DecodeMessage decoder            = new DecodeMessage( nullLogger, null, new EncodingOptions());
             byte[]         encodedMeta        = dataSet.GetEncodedMetaFrame( new EncodingOptions(), 1, true );
             byte[]         encodedDelta       = dataSet.GetEncodedDeltaFrame( 2 );
             NetworkMessage metaNetworkMessage = decoder.ParseBinaryMessage( encodedMeta );
@@ -193,7 +194,8 @@ namespace opc.ua.pubsub.dotnet.binary.test
             {
                 dataSet.AddDataPoint( dataPoint );
             }
-            DecodeMessage  decoder            = new DecodeMessage();
+            NullLogger<DecodeMessage> nullLogger = new NullLogger<DecodeMessage>();
+            DecodeMessage decoder = new DecodeMessage( nullLogger, null, new EncodingOptions() );
             byte[]         encodedMeta        = dataSet.GetEncodedMetaFrame( new EncodingOptions(), 1, true );
             byte[]         encodedKey         = dataSet.GetEncodedKeyFrame( 2 );
             NetworkMessage metaNetworkMessage = decoder.ParseBinaryMessage( encodedMeta );

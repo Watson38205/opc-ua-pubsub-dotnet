@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Microsoft.Extensions.Logging;
 using opc.ua.pubsub.dotnet.binary.Messages.Meta;
 using opc.ua.pubsub.dotnet.binary.Messages.Meta.Structure;
 
@@ -116,7 +117,7 @@ namespace opc.ua.pubsub.dotnet.binary.DataPoints
         // created time
         public long Time { get; set; }
 
-        public override void Decode( Stream inputStream )
+        public override void Decode( ILogger logger, Stream inputStream )
         {
             if ( inputStream == null || !inputStream.CanRead )
             {
@@ -143,7 +144,7 @@ namespace opc.ua.pubsub.dotnet.binary.DataPoints
             Name = System.IO.Path.GetFileName( Path.Value );
         }
 
-        public override void Encode( Stream outputStream )
+        public override void Encode( ILogger logger, Stream outputStream )
         {
             if ( outputStream == null || !outputStream.CanWrite )
             {

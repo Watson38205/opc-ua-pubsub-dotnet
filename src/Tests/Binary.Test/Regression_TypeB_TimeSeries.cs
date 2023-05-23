@@ -4,7 +4,8 @@
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
-using opc.ua.pubsub.dotnet.binary;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using opc.ua.pubsub.dotnet.binary.Decode;
 using opc.ua.pubsub.dotnet.binary.Messages;
 using opc.ua.pubsub.dotnet.binary.Messages.Delta;
@@ -16,13 +17,16 @@ namespace opc.ua.pubsub.dotnet.binary.test
 {
     public class Regression_TypeB_TimeSeries
     {
-        private const string        PublisherID = "SIPROTEC_7KE85_SIP_BMTTTT123456";
-        private       DecodeMessage Decoder        { get; set; }
-        private       string        TestDataFolder { get; set; }
+        private const string                 PublisherID = "SIPROTEC_7KE85_SIP_BMTTTT123456";
+        private       DecodeMessage          Decoder        { get; set; }
+        private       string                 TestDataFolder { get; set; }
+        private       ILogger<DecodeMessage> m_Logger;
 
         [OneTimeSetUp]
         public void SetUp()
         {
+            m_Logger           = new NullLogger<DecodeMessage>();
+
             TestDataFolder = Path.Combine( Path.GetDirectoryName( Assembly.GetExecutingAssembly()
                                                                           .Location
                                                                 ),
@@ -30,7 +34,8 @@ namespace opc.ua.pubsub.dotnet.binary.test
                                            "TypeB",
                                            "TimeSeries"
                                          );
-            Decoder = new DecodeMessage( new EncodingOptions
+            Decoder = new DecodeMessage( m_Logger,
+                                         new EncodingOptions
                                          {
                                                  LegacyFieldFlagEncoding = false
                                          }

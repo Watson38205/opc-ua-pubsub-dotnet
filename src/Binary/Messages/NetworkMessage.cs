@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using opc.ua.pubsub.dotnet.binary.Header;
 
 namespace opc.ua.pubsub.dotnet.binary.Messages
@@ -17,10 +18,12 @@ namespace opc.ua.pubsub.dotnet.binary.Messages
             Options = options;
         }
 
-        public         NetworkMessageHeader NetworkMessageHeader          { get; set; }
-        public         byte[]               RawPayload                    { get; set; }
-        public virtual void                 Encode( Stream outputStream, bool withHeader = true ) { }
-        public         EncodingOptions      Options                       { get; protected set; }
+        public         NetworkMessageHeader NetworkMessageHeader                                                  { get; set; }
+        public         byte[]               RawPayload                                                            { get; set; }
+        public virtual void                 Encode( ILogger logger, Stream outputStream, bool withHeader = true ) { }
+        public virtual void                 Decode( ILogger logger, Stream inputStream ) { }
+
+        public         EncodingOptions      Options { get; protected set; }
 
         #region Overrides of Object
 

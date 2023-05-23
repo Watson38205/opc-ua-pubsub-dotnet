@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
@@ -36,7 +37,7 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.Meta
         public BuiltinType Type { get; set; }
         public int ValueRank { get;    set; }
 
-        public void Encode( Stream outputStream, bool withHeader = true)
+        public void Encode( ILogger logger, Stream outputStream, bool withHeader = true)
         {
             if ( outputStream == null || !outputStream.CanWrite )
             {
@@ -50,7 +51,7 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.Meta
             Description.Encode( outputStream );
 
             // 3. Field Flags
-            Flags.Encode( outputStream );
+            Flags.Encode( logger, outputStream );
 
             // 4. Built-in Type
             outputStream.WriteByte( (byte)Type );
@@ -76,7 +77,7 @@ namespace opc.ua.pubsub.dotnet.binary.Messages.Meta
 
         public EncodingOptions Options { get; }
 
-        public static FieldMetaData Decode( Stream inputStream, EncodingOptions options )
+        public static FieldMetaData Decode( ILogger logger, Stream inputStream, EncodingOptions options )
         {
             FieldMetaData instance = new FieldMetaData( options );
 

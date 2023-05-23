@@ -3,21 +3,19 @@
 
 using System;
 using System.Collections.Generic;
-using System.Reflection;
+using Microsoft.Extensions.Logging;
 using opc.ua.pubsub.dotnet.binary.Messages.Chunk;
-using log4net;
 
 namespace opc.ua.pubsub.dotnet.binary.Decode
 {
     public class ChunkManager
     {
-        private static readonly ILog Logger = LogManager.GetLogger( MethodBase.GetCurrentMethod()
-                                                                              .DeclaringType
-                                                                  );
+        private readonly ILogger                                                                  m_Logger;
         private readonly Dictionary<string, Dictionary<ushort, Dictionary<ushort, ChunkStorage>>> m_Storage;
 
-        public ChunkManager()
+        public ChunkManager(ILogger logger)
         {
+            m_Logger  = logger ?? throw new ArgumentNullException( nameof(logger) );
             m_Storage = new Dictionary<string, Dictionary<ushort, Dictionary<ushort, ChunkStorage>>>();
         }
 
@@ -77,20 +75,26 @@ namespace opc.ua.pubsub.dotnet.binary.Decode
             {
                 string text =
                         $"TotalSize mismatch for Publisher {publisherID} and Message Sequence {message.MessageSequenceNumber}: previous TotalSize: {storage.TotalSize} != {message.TotalSize}";
-                Logger.Error( text );
+                m_Logger.LogError( text );
                 throw new ApplicationException( text );
             }
-            if ( Logger.IsDebugEnabled )
+
+            if ( m_Logger.IsEnabled( LogLevel.Debug ) )
             {
-                Logger.Debug( $"Storing chunk from Publisher {publisherID} with WriterID {writerID} and Sequence Number {sequenceNumber}. OffSet: {message.ChunkOffset}, TotalSize: {message.TotalSize}, ChunkSize: {message.ChunkData.Length}"
-                            );
+                m_Logger.LogDebug( $"Storing chunk from Publisher {publisherID} with WriterID {writerID} and Sequence Number {sequenceNumber}. OffSet: {message.ChunkOffset}, TotalSize: {message.TotalSize}, ChunkSize: {message.ChunkData.Length}" );
             }
+
             Chunk newChunk = new Chunk
                              {
                                      Offset = message.ChunkOffset,
                                      Data   = message.ChunkData
                              };
-            return storage.Add( newChunk );
+            var isCompleted = storage.Add( newChunk );
+            if ( isCompleted)
+            {
+                m_Logger.LogDebug( "TotalSize: {TotalSize}, ReceivedSize {ReceivedSize} ? ", storage.TotalSize, storage.ReceivedSize );
+            }
+            return isCompleted;
         }
 
         private Dictionary<ushort, ChunkStorage> GetSequenceStorage( string publisherID, ushort writerID )

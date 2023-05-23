@@ -4,7 +4,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
-using opc.ua.pubsub.dotnet.binary;
+using Microsoft.Extensions.Logging.Abstractions;
 using opc.ua.pubsub.dotnet.binary.Decode;
 using opc.ua.pubsub.dotnet.binary.Messages;
 using opc.ua.pubsub.dotnet.binary.Messages.Chunk;
@@ -115,7 +115,9 @@ namespace opc.ua.pubsub.dotnet.binary.test
                                       {
                                               LegacyFieldFlagEncoding = true
                                       };
-            Decoder = new DecodeMessage( options );
+
+            NullLogger<DecodeMessage> nullLogger = new NullLogger<DecodeMessage>();
+            Decoder = new DecodeMessage( nullLogger, options );
             TestDataFolder = Path.Combine( Path.GetDirectoryName( Assembly.GetExecutingAssembly()
                                                                           .Location
                                                                 ),

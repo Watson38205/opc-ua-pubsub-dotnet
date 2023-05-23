@@ -6,19 +6,15 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Reflection;
 using System.Text;
-using opc.ua.pubsub.dotnet.binary.Messages.Meta;
+using Microsoft.Extensions.Logging;
 using opc.ua.pubsub.dotnet.binary.Messages.Meta.Structure;
-using log4net;
 
 namespace opc.ua.pubsub.dotnet.binary.DataPoints
 {
     public abstract class ProcessDataPointValue : DataPointValue, IEquatable<ProcessDataPointValue>
     {
-        private static readonly ILog Logger = LogManager.GetLogger( MethodBase.GetCurrentMethod()
-                                                                              .DeclaringType
-                                                                  );
+        private   ILogger                    m_Logger;
         protected Dictionary<string, object> m_AttributeValues = new Dictionary<string, object>();
         protected string                     m_QualityPropertyName;
         protected string                     m_TimeStampPropertyName;
@@ -191,7 +187,7 @@ namespace opc.ua.pubsub.dotnet.binary.DataPoints
                 }
                 catch
                 {
-                    Logger.Error( $"Erroneous filestamp received {value} - Using Epoch Time" );
+                    m_Logger?.LogError( $"Erroneous filestamp received {value} - Using Epoch Time" );
                     SetDateTime( new DateTime( 1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc ) );
                 }
             }
@@ -301,30 +297,32 @@ namespace opc.ua.pubsub.dotnet.binary.DataPoints
             return areEqual;
         }
 
-        public override void Decode( Stream inputStream )
+        public override void Decode( ILogger logger, Stream inputStream )
         {
             if ( inputStream == null || StructureDescription == null )
             {
-                Logger.Info( "Either inputStream is null or StructureDescription is not set" );
+                logger.LogInformation( "Either inputStream is null or StructureDescription is not set" );
                 return;
             }
+            m_Logger = logger;
             foreach ( StructureField field in StructureDescription.Fields )
             {
-                DataPointEncoderDecoder.Decode( inputStream, m_AttributeValues, field.DataType, field.Name.Value );
+                DataPointEncoderDecoder.Decode( logger, inputStream, m_AttributeValues, field.DataType, field.Name.Value );
             }
         }
 
-        public override void Encode( Stream outputStream )
+        public override void Encode( ILogger logger, Stream outputStream )
         {
             if ( outputStream == null || !outputStream.CanWrite )
             {
                 return;
             }
+            m_Logger = logger;
             foreach ( StructureField field in StructureDescription.Fields )
             {
                 if ( m_AttributeValues.TryGetValue( field.Name.Value, out object val ) )
                 {
-                    DataPointEncoderDecoder.Encode( outputStream, field.DataType, val );
+                    DataPointEncoderDecoder.Encode( logger, outputStream, field.DataType, val );
                 }
                 else
                 {
