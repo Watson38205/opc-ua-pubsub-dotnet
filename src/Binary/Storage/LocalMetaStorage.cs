@@ -126,10 +126,10 @@ namespace opc.ua.pubsub.dotnet.binary.Storage
             }
 
             // Process all the meta frames cache in the directory
-            foreach ( string fileName in Directory.EnumerateFiles( metaDirectory, "*.meta" ) )
+            foreach ( string filePath in Directory.EnumerateFiles( metaDirectory, "*.meta" ) )
             {
-                m_Logger.LogInformation( "Loading from disk meta frame {FilePath}", fileName );
-                using MemoryStream   memoryStream         = new MemoryStream( File.ReadAllBytes( fileName ) );
+                m_Logger.LogInformation( "Loading from disk meta frame {FilePath}", filePath );
+                using MemoryStream   memoryStream         = new MemoryStream( File.ReadAllBytes( filePath ) );
                 NetworkMessageHeader networkMessageHeader = NetworkMessageHeader.Decode( memoryStream );
                 MetaFrame            metaFrame            = MetaFrame.Decode( m_Logger, memoryStream, m_EncodingOptions);
                 metaFrame.NetworkMessageHeader            = networkMessageHeader;
@@ -143,12 +143,17 @@ namespace opc.ua.pubsub.dotnet.binary.Storage
         private void SaveMetaFrameToDisk( MetaFrame metaFrame, string publisherId, Int32 writerID, ConfigurationVersion configurationVersion )
         {
             var    metaDirectory = m_EncodingOptions.DiskMetaMessageCacheDirectory;
-            string fileName      = $"{metaDirectory}\\{publisherId}-{writerID}-{configurationVersion.Major}-{configurationVersion.Minor}.meta";
-            Directory.CreateDirectory( Path.GetDirectoryName( fileName ) );
+            string fileName      = $"{publisherId}-{writerID}-{configurationVersion.Major}-{configurationVersion.Minor}.meta";
+            string filePath      = Path.Combine( metaDirectory, fileName );
+            var directoryName    = Path.GetDirectoryName( filePath );
+            if ( !string.IsNullOrWhiteSpace( directoryName ) )
+            {
+                Directory.CreateDirectory( directoryName );
+            }
             using MemoryStream memoryStream = new MemoryStream();
             metaFrame.Encode( m_Logger, memoryStream );
-            m_Logger.LogInformation( "Writing to disk meta frame {FilePath}", fileName );
-            File.WriteAllBytes( fileName, memoryStream.ToArray() );
+            m_Logger.LogInformation( "Writing to disk meta frame {FilePath}", filePath );
+            File.WriteAllBytes( filePath, memoryStream.ToArray() );
         }
 
         /// <summary>
@@ -168,16 +173,17 @@ namespace opc.ua.pubsub.dotnet.binary.Storage
             string               publisherId          = metaFrame.NetworkMessageHeader.PublisherID.Value;
             ConfigurationVersion configurationVersion = metaFrame.ConfigurationVersion;
             ushort               writerID             = metaFrame.DataSetWriterID;
-            string               fileName             = $"{metaDirectory}\\{publisherId}-{writerID}-{configurationVersion.Major}-{configurationVersion.Minor}.meta";
+            string               fileName             = $"{publisherId}-{writerID}-{configurationVersion.Major}-{configurationVersion.Minor}.meta";
+            string               filePath             = Path.Combine( metaDirectory, fileName );
 
             try
             {
-                File.Delete( fileName );
-                m_Logger.LogInformation( "Deleted disk meta frame {FilePath}", fileName );
+                File.Delete( filePath );
+                m_Logger.LogInformation( "Deleted disk meta frame {FilePath}", filePath );
             }
             catch ( Exception e )
             {
-                m_Logger.LogError(e, "Failed to delete disk meta frame {FilePath}", fileName );
+                m_Logger.LogError(e, "Failed to delete disk meta frame {FilePath}", filePath );
             }
         }
     }
