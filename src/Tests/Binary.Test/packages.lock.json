@@ -24,6 +24,15 @@
         "resolved": "3.3.2",
         "contentHash": "L9lU2E9SaK8znn8ZkstOx8jjpYmsBTvt3xIW6btPM/Fi8m7zSK80itHV0p6f23q84uvyXS8ibECjP0Vra99zsQ=="
       },
+      "Moq": {
+        "type": "Direct",
+        "requested": "[4.18.4, )",
+        "resolved": "4.18.4",
+        "contentHash": "IOo+W51+7Afnb0noltJrKxPBSfsgMzTKCw+Re5AMx8l/vBbAbMDOynLik4+lBYIWDJSO0uV7Zdqt7cNb6RZZ+A==",
+        "dependencies": {
+          "Castle.Core": "5.1.1"
+        }
+      },
       "NUnit": {
         "type": "Direct",
         "requested": "[3.13.3, )",
@@ -44,6 +53,14 @@
         "requested": "[4.3.1, )",
         "resolved": "4.3.1",
         "contentHash": "R+bGFtsUpLWywjT1nb3xMmoVa2AIw6ClIGC+XjW9lYE8hwJeos+NdR/mtg4RXbBphmC9epALrnUc6MM7mUG8+Q=="
+      },
+      "Castle.Core": {
+        "type": "Transitive",
+        "resolved": "5.1.1",
+        "contentHash": "rpYtIczkzGpf+EkZgDr9CClTdemhsrwA/W5hMoPjLkRFnXzH44zDLoovXeKtmxb1ykXK9aJVODSpiJml8CTw2g==",
+        "dependencies": {
+          "System.Diagnostics.EventLog": "6.0.0"
+        }
       },
       "log4net": {
         "type": "Transitive",
@@ -260,6 +277,11 @@
           "System.Security.Cryptography.ProtectedData": "4.5.0",
           "System.Security.Permissions": "4.5.0"
         }
+      },
+      "System.Diagnostics.EventLog": {
+        "type": "Transitive",
+        "resolved": "6.0.0",
+        "contentHash": "lcyUiXTsETK2ALsZrX+nWuHSIQeazhqPphLfaRxzdGaG93+0kELqpgEHtwWOlQe7+jSFnKwaCAgL4kjeZCQJnw=="
       },
       "System.IdentityModel.Tokens.Jwt": {
         "type": "Transitive",
