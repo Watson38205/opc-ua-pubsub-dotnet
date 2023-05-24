@@ -97,7 +97,7 @@ namespace opc.ua.pubsub.dotnet.binary.Storage
                 cfgDictionary = new ConcurrentDictionary<ConfigurationVersion, MetaFrame>();
                 publisherDictionary.TryAdd( writerID, cfgDictionary );
             }
-            if ( cfgDictionary.Count > MaximumMetaMessagePerPublisher )
+            if ( cfgDictionary.Count >= MaximumMetaMessagePerPublisher )
             {
                 cfgDictionary.TryRemove( cfgDictionary.Keys.OrderBy( a => a ).First(), out MetaFrame removedMetaFrame );
                 RemoveMetaFrameFromDisk( removedMetaFrame );
@@ -125,10 +125,10 @@ namespace opc.ua.pubsub.dotnet.binary.Storage
                 return;
             }
 
-            // Process al the meta frames cache in the directory
+            // Process all the meta frames cache in the directory
             foreach ( string fileName in Directory.EnumerateFiles( metaDirectory, "*.meta" ) )
             {
-                m_Logger.LogDebug( "Loading from disk meta frame {FilePath}", fileName );
+                m_Logger.LogInformation( "Loading from disk meta frame {FilePath}", fileName );
                 using MemoryStream   memoryStream         = new MemoryStream( File.ReadAllBytes( fileName ) );
                 NetworkMessageHeader networkMessageHeader = NetworkMessageHeader.Decode( memoryStream );
                 MetaFrame            metaFrame            = MetaFrame.Decode( m_Logger, memoryStream, m_EncodingOptions);
@@ -147,7 +147,7 @@ namespace opc.ua.pubsub.dotnet.binary.Storage
             Directory.CreateDirectory( Path.GetDirectoryName( fileName ) );
             using MemoryStream memoryStream = new MemoryStream();
             metaFrame.Encode( m_Logger, memoryStream );
-            m_Logger.LogDebug( "Writing to disk meta frame {FilePath}", fileName );
+            m_Logger.LogInformation( "Writing to disk meta frame {FilePath}", fileName );
             File.WriteAllBytes( fileName, memoryStream.ToArray() );
         }
 
@@ -173,7 +173,7 @@ namespace opc.ua.pubsub.dotnet.binary.Storage
             try
             {
                 File.Delete( fileName );
-                m_Logger.LogDebug( "Deleted disk meta frame {FilePath}", fileName );
+                m_Logger.LogInformation( "Deleted disk meta frame {FilePath}", fileName );
             }
             catch ( Exception e )
             {
